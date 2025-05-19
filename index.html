@@ -873,6 +873,17 @@
             });
         });
 
+        // Add this CSS animation to your existing styles
+        const timerSoundStyle = document.createElement('style');
+        timerSoundStyle.textContent = `
+            @keyframes flash {
+                0% { opacity: 1; }
+                50% { opacity: 0.3; }
+                100% { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(timerSoundStyle);
+
         // Functions
         function toggleMenu() {
             menu.classList.toggle('active');
@@ -1141,8 +1152,8 @@
             // Hide turn indicator during play
             document.getElementById('turn-indicator').style.display = 'none';
             
-            // Disable start button, enable other buttons
-            startTurnBtn.disabled = true;
+            // Hide start button instead of just disabling it
+            startTurnBtn.style.display = 'none';
             correctGuessBtn.disabled = false;
             
             // Show a random card
@@ -1187,7 +1198,8 @@
                 playTimerEndSound();
             }
             
-            // Enable start button, disable other buttons
+            // Show start button again and enable it
+            startTurnBtn.style.display = 'block';
             startTurnBtn.disabled = false;
             correctGuessBtn.disabled = true;
             
@@ -1346,37 +1358,51 @@
 
         function playTimerEndSound() {
             try {
-                const context = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = context.createOscillator();
-                const gainNode = context.createGain();
+                // Create an audio element instead of using the Audio Context
+                const audioElement = document.createElement('audio');
                 
-                oscillator.connect(gainNode);
-                gainNode.connect(context.destination);
+                // Use a short beep sound - this can be replaced with a hosted mp3 file
+                // Data URI for a short beep sound (pre-encoded mp3)
+                audioElement.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAASAAAeMwAUFBQUFCIiIiIiIjAwMDAwMD4+Pj4+PkxMTExMTFpaWlpaWmhoaGhoaHZ2dnZ2doSEhISEhJKSkpKSkqCgoKCgoK6urq6urrKysrKysr6+vr6+vsbGxsbGxtTU1NTU1OTk5OTk5PDw8PDw8P///wAAADxMQVZDNTguMTMuMTAyAGAQAAAAAAAAAR4AABIAAACE8nLJsQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//tAxAAAByYjMdxhAAPmtGZnbCAAQA4TxF///OQcGP6KfDjOAf2Yv///uffef/1Pr9tX7OXj7OXOsZsfLRwBsaMkJI24QMBiwMsNgYQJ0mWiJmJJiCYGhoYKCZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJkyZMmTJA==';
                 
-                oscillator.type = 'square';
-                oscillator.frequency.value = 800;
-                gainNode.gain.value = 0.1;
+                // Set properties for better iOS compatibility
+                audioElement.preload = 'auto';
+                audioElement.volume = 0.6;
                 
-                // iOS requires starting the oscillator inside a user interaction event
-                oscillator.start(0);
+                // Make sure we have loaded the audio
+                audioElement.load();
                 
-                // Beep pattern
-                setTimeout(() => { oscillator.frequency.value = 0; }, 200);
-                setTimeout(() => { oscillator.frequency.value = 800; }, 400);
-                setTimeout(() => { oscillator.frequency.value = 0; }, 600);
-                setTimeout(() => { oscillator.frequency.value = 800; }, 800);
-                setTimeout(() => { 
-                    try {
-                        oscillator.stop(); 
-                    } catch(e) {
-                        console.log('Error stopping oscillator', e);
-                    }
-                }, 1000);
+                // Play the sound
+                let playPromise = audioElement.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        // Playback started successfully
+                        console.log("Audio playback started successfully");
+                    })
+                    .catch(error => {
+                        // Auto-play was prevented
+                        console.log("Audio playback was prevented:", error);
+                        
+                        // Fallback visual notification
+                        timerDisplay.style.color = 'red';
+                        timerDisplay.style.animation = 'flash 0.5s 3';
+                        setTimeout(() => { 
+                            timerDisplay.style.color = ''; 
+                            timerDisplay.style.animation = '';
+                        }, 1500);
+                    });
+                }
+                
             } catch (e) {
                 console.log('Error playing timer sound', e);
                 // Fallback visual notification if sound fails
                 timerDisplay.style.color = 'red';
-                setTimeout(() => { timerDisplay.style.color = ''; }, 1000);
+                timerDisplay.style.animation = 'flash 0.5s 3';
+                setTimeout(() => { 
+                    timerDisplay.style.color = ''; 
+                    timerDisplay.style.animation = '';
+                }, 1500);
             }
         }
 
